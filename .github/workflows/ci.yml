@@ -38,7 +38,7 @@ jobs:
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/my-app-backend:latest
           format: 'template'
-          template: '@/contrib/html.tpl'
+          template: 'html.tpl'
           output: 'trivy-report.html'
           severity: 'CRITICAL,HIGH'
           # On ne met pas exit-code: '1' ici pour s'assurer que le rapport se génère même s'il y a des failles.
