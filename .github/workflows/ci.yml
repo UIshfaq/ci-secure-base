@@ -30,6 +30,9 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/my-app-backend:latest
 
       # 2. Le scan Trivy qui génère un fichier HTML
+      - name: Télécharger le template HTML
+        run: curl -sL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl
+
       - name: Trivy Scan to HTML
         uses: aquasecurity/trivy-action@master
         with:
