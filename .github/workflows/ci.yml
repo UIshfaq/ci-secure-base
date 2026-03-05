@@ -1,0 +1,57 @@
+name: Build, Scan and Push
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-scan-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 1. On construit l'image en local (sans la pousser)
+      - name: Build local image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-app-backend:latest
+
+      # 2. Le scan Trivy qui génère un fichier HTML
+      - name: Trivy Scan to HTML
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/my-app-backend:latest
+          format: 'template'
+          template: '@/contrib/html.tpl'
+          output: 'trivy-report.html'
+          severity: 'CRITICAL,HIGH'
+          # On ne met pas exit-code: '1' ici pour s'assurer que le rapport se génère même s'il y a des failles.
+
+      # 3. L'étape magique : Sauvegarder le fichier HTML sur GitHub
+      - name: Upload Trivy HTML Report
+        uses: actions/upload-artifact@v4
+        if: always() # S'assure de sauvegarder le fichier même en cas d'erreur
+        with:
+          name: rapport-securite-trivy
+          path: trivy-report.html
+
+      # 4. On pousse l'image sur Docker Hub
+      - name: Push to Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-app-backend:latest
